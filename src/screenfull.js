@@ -3,6 +3,7 @@
 	'use strict';
 
 	var keyboardAllowed = 'ALLOW_KEYBOARD_INPUT' in Element,
+		stack = [],
 
 		methods = (function() {
 			var methodMap = [
@@ -44,16 +45,13 @@
 
 			element: document[ methods[4] ],
 
-			request: function( elem ) {
+			request: function( elem, _ignore ) {
 				var request = methods[0];
 
 				elem = elem || document.documentElement;
 
-				// If you request a new element when already in fullscreen, Chrome will
-				// change directly to that element, while Firefox will do nothing. Force
-				// Firefox to change element by exiting and then reenter, making it consistent.
-				if ( request.indexOf('moz') !== -1 && elem !== this.element ) {
-					this.exit();
+				if ( !_ignore ) {
+					stack.push( elem ); // only if no permission error
 				}
 
 				elem[ request ]( keyboardAllowed && Element.ALLOW_KEYBOARD_INPUT );
@@ -66,7 +64,13 @@
 			},
 
 			exit: function() {
-				document[ methods[1] ]();
+				stack.pop();
+				if ( stack.length >= 1 ) {
+					var elem = stack[ stack.length - 1 ];
+					this.request( elem, true );
+				} else {
+					document[ methods[1] ]();
+				}
 			},
 
 			toggle: function( elem ) {
